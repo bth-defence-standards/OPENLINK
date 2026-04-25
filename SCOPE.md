@@ -47,7 +47,9 @@ The specification follows semantic versioning. Breaking changes to message seman
 
 ## Relationship to other standards
 
-OPENLINK is aligned with BSI Flex 335 (SAPIENT), which is on the NATO STANAG track for autonomous sensor and effector networks. OPENLINK is a complement, not a competitor. BSI Flex 335 covers the sensor-to-fusion interface. OPENLINK extends into observation provenance and maritime-domain tasking. Systems implementing BSI Flex 335 can expose an OPENLINK interface with an adapter; no replacement of existing SAPIENT integration is required.
+OPENLINK is aligned with [BSI Flex 335 v2.0:2024-03](https://www.gov.uk/guidance/sapient-autonomous-sensor-system) (SAPIENT), published by the British Standards Institution and undergoing NATO STANAG ratification for autonomous sensor and effector networks. OPENLINK is a complement, not a competitor.
+
+BSI Flex 335 v2.0 defines the SAPIENT interface for hierarchical networks of sensor edge nodes, fusion nodes, and effector nodes, with run-time taxonomies that allow sensors from any domain to transmit and be fused. OPENLINK adds a maritime-domain taxonomy and an observation-provenance extension to that interface. Systems implementing BSI Flex 335 v2.0 can expose an OPENLINK interface with an adapter; no replacement of existing SAPIENT integration is required.
 
 Alignment with NATO Architecture Framework (NAF) and STANAG 4559 (coalition ISR interoperability) is a design goal, not a current compliance claim.
 
