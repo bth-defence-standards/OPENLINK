@@ -4,7 +4,7 @@
 
 An interface specification for sensor interoperability, published as publicly available academic research. Apache-2.0.
 
-Aligned with [BSI Flex 335](https://knowledge.bsigroup.com/products/sapient-network-of-autonomous-sensors-and-effectors-interface-control-document-specification/standard) (SAPIENT, on the NATO STANAG track).
+Aligned with [BSI Flex 335 v2.0](https://www.gov.uk/guidance/sapient-autonomous-sensor-system) (SAPIENT, NATO STANAG ratification in progress).
 
 Published by Blekinge Institute of Technology with Sjöstridsskolan (Swedish Naval Warfare Centre), Karlskrona.
 
