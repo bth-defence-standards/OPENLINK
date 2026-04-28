@@ -1,0 +1,52 @@
+// OPENLINK Protocol v1 — Envelope
+//
+// Every OPENLINK byte on the wire starts here.
+// Wire format: [4-byte magic 0x44524558][4-byte length BE][Envelope bytes]
+
+syntax = "proto3";
+package openlink.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Envelope {
+  uint32 version = 1;                      // Protocol major version (1)
+  string message_id = 2;                   // UUIDv7 (time-ordered)
+  google.protobuf.Timestamp sent_at = 3;
+  string sender_node_id = 4;
+
+  // Integrity — verified before payload is touched
+  bytes sender_public_key = 5;             // Ed25519, 32 bytes
+  bytes signature = 6;                     // Ed25519 over (version ++ type ++ payload)
+
+  // Payload — deserialized based on type
+  MessageType type = 7;
+  bytes payload = 8;                       // Serialized message of the declared type
+
+  // Delivery semantics
+  string idempotency_key = 9;             // Dedup on reconnection
+  uint32 hop_count = 10;                  // Reject > 8
+}
+
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+
+  // Core (1-9)
+  MESSAGE_TYPE_ENGAGEMENT_RECORD = 1;
+  MESSAGE_TYPE_OUTCOME_VERIFICATION = 2;
+  MESSAGE_TYPE_NODE_HEARTBEAT = 3;
+  MESSAGE_TYPE_OBSERVATION_REPORT = 4;     // Human observer report (voice + visual)
+
+  // Settlement extension (10-19)
+  MESSAGE_TYPE_SETTLEMENT_CLAIM = 10;
+  MESSAGE_TYPE_SETTLEMENT_RESPONSE = 11;
+
+  // Federation extension (20-29)
+  MESSAGE_TYPE_MODEL_GRADIENT = 20;
+  MESSAGE_TYPE_EQUITY_LEDGER = 21;
+
+  // Intelligence extension (30-39)
+  MESSAGE_TYPE_THREAT_DIGEST = 30;
+
+  // 1000-1999: national extensions
+  // 2000-2999: vendor extensions
+}

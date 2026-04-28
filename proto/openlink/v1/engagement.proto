@@ -1,0 +1,78 @@
+// OPENLINK Protocol v1 — Core Engagement Messages
+//
+// Two message types. This is the entire minimum viable protocol.
+// EngagementRecord + OutcomeVerification = verified engagement.
+// A verified engagement is billable, trainable, auditable.
+
+syntax = "proto3";
+package openlink.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openlink/v1/types.proto";
+
+// The atomic unit of OPENLINK.
+// One detection-to-outcome lifecycle = one record.
+// Records form a Merkle chain per node (prev_hash links to previous).
+// Append-only, tamper-evident.
+message EngagementRecord {
+  string engagement_id = 1;              // UUIDv7
+  google.protobuf.Timestamp created_at = 2;
+  string node_id = 3;
+
+  // Kill chain
+  ThreatClassification classification = 4;
+  Detection detection = 5;
+  Response response = 6;
+  EngagementOutcome outcome = 7;
+
+  // Chain integrity
+  bytes prev_record_hash = 8;           // SHA-256 of previous record from this node
+  bytes record_hash = 9;                // SHA-256(canonical(fields 1-8))
+
+  SecurityClassification classification_level = 10;
+
+  // 100-199: national extensions
+  // 200-299: vendor extensions
+  reserved 100 to 299;
+}
+
+// Independent confirmation of an engagement outcome.
+// Can come from same node (self-verify via track loss) or
+// different node (cross-verify — higher confidence).
+//
+// EngagementRecord without OutcomeVerification = PENDING.
+// Cannot be used for settlement, training, or reporting.
+message OutcomeVerification {
+  string verification_id = 1;            // UUIDv7
+  string engagement_id = 2;             // References EngagementRecord
+  string verifier_node_id = 3;
+
+  OutcomeStatus verified_status = 4;
+  float confidence = 5;                 // 0.0-1.0
+  OutcomeMethod method = 6;
+
+  // Evidence stays local. Only hash crosses the network.
+  bytes evidence_hash = 7;              // SHA-256 of local evidence bundle
+
+  google.protobuf.Timestamp verified_at = 8;
+
+  reserved 100 to 299;
+}
+
+// Liveness signal + chain consistency check.
+message NodeHeartbeat {
+  string node_id = 1;
+  google.protobuf.Timestamp sent_at = 2;
+  NodeStatus status = 3;
+  bytes chain_head_hash = 4;
+  uint64 total_engagements = 5;
+  uint64 total_verified = 6;
+}
+
+enum NodeStatus {
+  NODE_STATUS_UNSPECIFIED = 0;
+  NODE_STATUS_OPERATIONAL = 1;
+  NODE_STATUS_DEGRADED = 2;
+  NODE_STATUS_MAINTENANCE = 3;
+  NODE_STATUS_OFFLINE = 4;
+}
