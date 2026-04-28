@@ -1,0 +1,83 @@
+// OPENLINK Protocol v1 — Human Observation Report
+//
+// Extends the OPENLINK chain with operator-reported intelligence.
+// Each observation is an atom on the observer's Merkle chain,
+// signed by the observer's Ed25519 key (same key as TLS identity).
+//
+// An ObservationReport from a human observer with eyes-on collapses
+// the Fix phase of the kill chain (F2T2EA) from probabilistic sensor
+// fusion to human-confirmed identification. This is the highest-value
+// input in the C-UAS decision loop.
+//
+// The voice transcript is processed on the observer's device (edge STT).
+// Only structured fields and hashes cross the network — never raw audio.
+// Raw audio stays on the observer's device as local evidence.
+
+syntax = "proto3";
+package openlink.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openlink/v1/types.proto";
+
+// A human observation. Forms a Merkle chain on the observer's device.
+// When correlated with a sensor EngagementRecord, confidence compounds.
+message ObservationReport {
+  string observation_id = 1;                 // UUIDv7
+  google.protobuf.Timestamp observed_at = 2;
+  string observer_node_id = 3;              // OPENLINK node ID of the phone
+
+  // What was observed (structured extraction from voice)
+  ThreatClassification classification = 4;
+  ThreatBehavior behavior = 5;
+  uint32 count = 6;                         // Number of threats observed (0 = unknown)
+
+  // Where (relative to observer, no absolute position leaked)
+  float bearing_deg = 7;                    // True north, clockwise
+  float elevation_deg = 8;
+  float estimated_range_m = 9;              // Human estimate, low precision
+
+  // Observer context
+  ObserverMethod method = 10;
+  string observer_callsign = 11;            // e.g., "ALPHA-1"
+  string standing_orders = 12;              // Mission context at time of observation
+
+  // Evidence hashes (evidence stays on device, only hashes cross the network)
+  bytes voice_audio_hash = 13;              // SHA-256 of raw audio recording
+  bytes voice_transcript_hash = 14;         // SHA-256 of transcript text
+  bytes camera_frame_hash = 15;             // SHA-256 of JPEG frame at time of report
+  string transcript_text = 16;             // Structured text extracted from voice
+
+  // Sensor correlation (filled by fusion layer, not by observer)
+  string correlated_engagement_id = 17;     // EngagementRecord this observation confirms
+  float correlation_confidence = 18;        // How certain is the match (0.0-1.0)
+
+  // Chain integrity (observer's Merkle chain)
+  bytes prev_record_hash = 19;             // SHA-256 of previous record from this observer
+  bytes record_hash = 20;                  // SHA-256(canonical(fields 1-19))
+
+  SecurityClassification classification_level = 21;
+
+  // 100-199: national extensions
+  // 200-299: vendor extensions
+  reserved 100 to 299;
+}
+
+// How the observer confirmed the threat
+enum ObserverMethod {
+  OBSERVER_METHOD_UNSPECIFIED = 0;
+  OBSERVER_METHOD_VISUAL = 1;               // Eyes-on, highest confidence
+  OBSERVER_METHOD_ACOUSTIC = 2;             // Heard drone motors
+  OBSERVER_METHOD_SENSOR_CONFIRMED = 3;     // Human confirmed what the sensor detected
+  OBSERVER_METHOD_INDIRECT = 4;             // Observed effects (e.g., saw impact)
+}
+
+// Observed threat behavior — what the threat is doing
+enum ThreatBehavior {
+  THREAT_BEHAVIOR_UNSPECIFIED = 0;
+  THREAT_BEHAVIOR_TRANSIT = 1;              // Moving through, not engaging
+  THREAT_BEHAVIOR_LOITERING = 2;            // Circling, reconnaissance
+  THREAT_BEHAVIOR_ATTACK = 3;               // On attack vector toward asset
+  THREAT_BEHAVIOR_RETREATING = 4;           // Moving away
+  THREAT_BEHAVIOR_STATIONARY = 5;           // Hovering or landed
+  THREAT_BEHAVIOR_DESCENDING = 6;           // Terminal dive (FPV attack profile)
+}

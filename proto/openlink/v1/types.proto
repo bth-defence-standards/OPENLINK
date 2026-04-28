@@ -1,0 +1,164 @@
+// OPENLINK Protocol v1 — Shared Types
+
+syntax = "proto3";
+package openlink.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// === IDENTITY ===
+
+message NodeIdentity {
+  string node_id = 1;                     // UUIDv4
+  NodeType node_type = 2;
+  string national_authority = 3;          // ISO 3166-1 alpha-2: "UA", "PL", "SE"
+  bytes public_key = 4;                   // Ed25519, 32 bytes
+  string implementation = 5;             // "aegisx-ref/1.0"
+}
+
+enum NodeType {
+  NODE_TYPE_UNSPECIFIED = 0;
+  NODE_TYPE_SENSOR = 1;
+  NODE_TYPE_EFFECTOR = 2;
+  NODE_TYPE_FUSION = 3;
+  NODE_TYPE_SETTLEMENT = 4;
+  NODE_TYPE_FEDERATION = 5;
+  NODE_TYPE_C2 = 6;
+  NODE_TYPE_OBSERVER = 7;                  // Soldier phone — human observer node
+}
+
+// TLS certificate derived from the node's Ed25519 key.
+// The same key signs atoms AND authenticates transport.
+// Revocation: if the node's chain is invalidated (fabricated atoms,
+// protocol violation), the cert is revoked — no external CA needed.
+// The OPENLINK chain IS the certificate authority.
+message NodeCertificate {
+  string node_id = 1;                      // Same as NodeIdentity.node_id
+  bytes public_key = 2;                    // Ed25519, 32 bytes (same as chain signing key)
+  bytes x509_cert_der = 3;                // Self-signed X.509 cert wrapping the Ed25519 key
+  google.protobuf.Timestamp issued_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  bytes cert_chain_hash = 6;              // SHA-256 of the node's chain head at cert issuance
+                                           // Proves the cert was issued by a node with a valid chain
+}
+
+// === GEOGRAPHY ===
+
+// Sovereignty-aware position. National policy controls precision.
+message GeoPoint {
+  double latitude = 1;
+  double longitude = 2;
+  float altitude_m = 3;
+  PositionPrecision precision = 4;
+}
+
+enum PositionPrecision {
+  POSITION_PRECISION_UNSPECIFIED = 0;
+  POSITION_PRECISION_EXACT = 1;
+  POSITION_PRECISION_DEGRADED_1KM = 2;
+  POSITION_PRECISION_GRID_10KM = 3;
+  POSITION_PRECISION_REDACTED = 4;       // Lat/lon/alt zeroed
+}
+
+// === THREAT CLASSIFICATION ===
+
+// Two-level: stable enum (protocol) + evolving string (model).
+// New drone types get subcategory strings, not new enum values.
+message ThreatClassification {
+  ThreatCategory category = 1;
+  string subcategory = 2;                // "fpv/fiber/mavic3"
+  float confidence = 3;                  // 0.0-1.0
+  string model_id = 4;                  // "aegisx-classifier-v3.2"
+}
+
+enum ThreatCategory {
+  THREAT_CATEGORY_UNSPECIFIED = 0;
+  THREAT_CATEGORY_UAS_MICRO = 1;         // <2kg (FPV class)
+  THREAT_CATEGORY_UAS_SMALL = 2;         // 2-25kg (Lancet class)
+  THREAT_CATEGORY_UAS_MEDIUM = 3;        // 25-150kg (Shahed class)
+  THREAT_CATEGORY_UAS_LARGE = 4;         // >150kg
+  THREAT_CATEGORY_PROJECTILE = 5;        // Rocket, mortar
+  THREAT_CATEGORY_FALSE_POSITIVE = 100;  // Bird, clutter
+}
+
+// === DETECTION ===
+
+message Detection {
+  float range_m = 1;
+  float bearing_deg = 2;                 // True north, clockwise
+  float elevation_deg = 3;
+  float radial_velocity_mps = 4;
+  float rcs_dbsm = 5;
+
+  GeoPoint sensor_position = 6;         // May be redacted
+  GeoPoint threat_position = 7;         // Estimated, may be redacted
+
+  string track_id = 8;
+  google.protobuf.Duration track_duration = 9;
+  uint32 scan_count = 10;
+}
+
+// === RESPONSE ===
+
+message Response {
+  ResponseType response_type = 1;
+  string effector_node_id = 2;          // If different from sensor
+  string effector_model = 3;            // "rgp40_ngko"
+  uint32 rounds_expended = 4;
+  google.protobuf.Duration time_to_engage = 5;
+  google.protobuf.Duration engagement_duration = 6;
+}
+
+enum ResponseType {
+  RESPONSE_TYPE_UNSPECIFIED = 0;
+  RESPONSE_TYPE_KINETIC = 1;
+  RESPONSE_TYPE_EW = 2;
+  RESPONSE_TYPE_DIRECTED_ENERGY = 3;
+  RESPONSE_TYPE_COMBINED = 4;
+  RESPONSE_TYPE_OBSERVE_ONLY = 5;
+}
+
+// === OUTCOME ===
+
+message EngagementOutcome {
+  OutcomeStatus status = 1;
+  float confidence = 2;
+  OutcomeMethod method = 3;
+  google.protobuf.Timestamp determined_at = 4;
+}
+
+enum OutcomeStatus {
+  OUTCOME_STATUS_UNSPECIFIED = 0;
+  OUTCOME_STATUS_KILL_CONFIRMED = 1;
+  OUTCOME_STATUS_KILL_PROBABLE = 2;
+  OUTCOME_STATUS_MISS = 3;
+  OUTCOME_STATUS_DETERRED = 4;
+  OUTCOME_STATUS_NO_ENGAGEMENT = 5;
+  OUTCOME_STATUS_PENDING = 6;
+}
+
+enum OutcomeMethod {
+  OUTCOME_METHOD_UNSPECIFIED = 0;
+  OUTCOME_METHOD_TRACK_LOSS = 1;
+  OUTCOME_METHOD_MULTI_SENSOR = 2;
+  OUTCOME_METHOD_VISUAL = 3;
+  OUTCOME_METHOD_BDA = 4;
+  OUTCOME_METHOD_ALGORITHMIC = 5;
+}
+
+// === MONETARY ===
+
+message MonetaryAmount {
+  string currency = 1;                  // ISO 4217
+  int64 minor_units = 2;               // Cents (no floating point)
+}
+
+// === SECURITY ===
+
+enum SecurityClassification {
+  SECURITY_CLASSIFICATION_UNSPECIFIED = 0;
+  SECURITY_CLASSIFICATION_UNCLASSIFIED = 1;
+  SECURITY_CLASSIFICATION_RESTRICTED = 2;
+  SECURITY_CLASSIFICATION_CONFIDENTIAL = 3;
+  SECURITY_CLASSIFICATION_SECRET = 4;
+}
